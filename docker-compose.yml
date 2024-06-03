@@ -1,0 +1,50 @@
+services:
+    webserver:
+        image: nginx:1.25-alpine
+        container_name: ea-webserver
+        restart: unless-stopped
+        volumes:
+            -   ./:/var/www
+            -   ./.docker/nginx/conf.d/:/etc/nginx/conf.d/
+            -   ./storage/docker/logs/nginx/:/var/log/nginx/
+        ports:
+            - "80:80"
+        networks:
+            -   ea-webserver-network
+
+    app:
+        build:
+            context: .
+            dockerfile: ./.docker/app/Dockerfile
+        container_name: ea-app
+        restart: unless-stopped
+        user: ${UID}:${GID}
+        volumes:
+            - ./:/var/www/
+            - ./.docker/app/php.ini:/usr/local/etc/php/conf.d/php.ini
+        depends_on:
+            - db
+        networks:
+            -   ea-webserver-network
+            -   ea-db-network
+
+    db:
+        image: mysql:8.0
+        container_name: ea-db
+        restart: unless-stopped
+        ports:
+            - "3306:3306"
+        volumes:
+            - ./storage/docker/db:/var/lib/mysql
+        environment:
+            - MYSQL_DATABASE=${DB_DATABASE}
+            - MYSQL_ROOT_PASSWORD=${DB_PASSWORD}
+        networks:
+            -   ea-db-network
+
+networks:
+    ea-db-network:
+    ea-webserver-network:
+
+
+
